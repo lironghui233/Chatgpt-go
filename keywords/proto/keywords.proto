@@ -1,0 +1,16 @@
+syntax = "proto3";
+option go_package = "keywords/proto";
+package leoh_package;
+
+message FindAllReq {
+  string text = 1;
+}
+message FindAllRes {
+  repeated string keywords = 1;
+}
+
+// 服务定义
+service Keywords{
+  rpc FindAll(FindAllReq) returns (FindAllRes) {}
+}
+
