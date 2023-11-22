@@ -1,0 +1,93 @@
+syntax = "proto3";
+option go_package = "chatgpt-service/proto";
+package leoh_package;
+enum ChatEndpoint {
+  // 网页版
+  WEB = 0;
+  // qq 版
+  QQ = 1;
+  // 微信公众号版
+  WECHATOFFICIAL = 2;
+  // 企微版
+  WECOM = 3;
+  //微信
+  WECHAT = 4;
+}
+//请求入参
+message ChatCompletionRequest{
+  //用户消息
+  string message = 1 [json_name = "message"];
+  //消息来源
+  ChatEndpoint endpoint =2 [json_name = "endpoint"];
+  // 用户标识以及web的消息ID
+  string id = 3 [json_name = "id"];
+  //QQ，或微信等群组ID
+  string groupId = 4 [json_name = "group_id"];
+  //是否启用上下文
+  bool enableContext = 5[json_name = "enable_context"];
+  // web消息的pid
+  string pid = 6 [json_name = "p_id"];
+  string enterpriseId = 7 [json_name = "enterprise_id"];
+  string endpointAccount = 8 [json_name = "endpoint_account"];
+  ChatParam chatParam = 9 [json_name = "chat_param"];
+}
+message ChatParam {
+  string model = 1 [json_name = "model"];
+  int32  maxTokens = 2 [json_name = "max_tokens"];
+  float temperature = 3 [json_name = "temperature"];
+  float topP = 4 [json_name = "top_p"];
+  float presencePenalty = 5 [json_name = "presence_penalty"];
+  float frequencyPenalty = 6 [json_name = "frequency_penalty"];
+  string botDesc = 7 [json_name = "bot_desc"];
+  int32 contextTTL = 8 [json_name = "context_ttl"];
+  int32 contextLen = 9 [json_name = "context_len"];
+  int32 minResponseTokens = 10 [json_name = "min_response_tokens"];
+}
+
+//消息响应结构，非流式响应
+message ChatCompletionResponse {
+  string id = 1 [json_name = "id"];
+  string object = 2 [json_name = "object"];
+  int64 created = 3 [json_name = "created"];
+  string model = 4 [json_name = "model"];
+  repeated  ChatCompletionChoice choices = 5 [json_name = "choices"];
+  Usage usage = 6[json_name = "usage"];
+}
+message ChatCompletionChoice {
+  int32 index = 1[json_name = "index"];
+  ChatCompletionMessage message = 2 [json_name = "message"];
+  string finishReason = 3[json_name="finish_reason"];
+}
+message ChatCompletionMessage {
+  string role=1[json_name = "role"];
+  string content=2[json_name = "content"];
+  string name=3[json_name = "name"];
+}
+message Usage {
+  int32 promptTokens = 1 [json_name = "prompt_tokens"];
+  int32 completionTokens =2 [json_name = "completion_tokens"];
+  int32 totalTokens      = 3 [json_name = "total_tokens"];
+}
+
+//消息响应结构，流式响应
+message ChatCompletionStreamResponse {
+  string id = 1 [json_name = "id"];
+  string object = 2 [json_name = "object"];
+  int64 created = 3 [json_name = "created"];
+  string model = 4 [json_name = "model"];
+  repeated  ChatCompletionStreamChoice choices = 5 [json_name = "choices"];
+}
+message ChatCompletionStreamChoice {
+  int32 index = 1[json_name = "index"];
+  ChatCompletionStreamChoiceDelta delta =2 [json_name = "delta"];
+  string finishReason = 3[json_name="finish_reason"];
+}
+message ChatCompletionStreamChoiceDelta {
+  string content = 1 [json_name = "content"];
+  string role = 2 [json_name = "role"];
+}
+
+service ChatGPT {
+  rpc ChatCompletion(ChatCompletionRequest) returns(ChatCompletionResponse) {}
+  rpc ChatCompletionStream(ChatCompletionRequest) returns(stream ChatCompletionStreamResponse) {}
+}
