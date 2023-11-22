@@ -1,0 +1,22 @@
+syntax = "proto3";
+option go_package = "crontab/proto";
+package leoh_package;
+enum TokenType {
+  // 微信公众号
+  WECHATOFFICIAL = 0;
+  //企微
+  WECOM = 1;
+}
+message TokenRequest {
+  TokenType typ = 1;
+  string id = 2;
+  string app = 3;
+}
+message  TokenResponse {
+  string accessToken = 1;
+}
+
+
+service Token{
+  rpc GetToken(TokenRequest) returns (TokenResponse) {}
+}

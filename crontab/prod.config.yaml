@@ -1,0 +1,19 @@
+server:
+  host: "0.0.0.0"
+  port: 50056
+  access_token: "3h7sksSdkFdDngKie8nth0yi29405nr9jey84prEhw5u43780yjr"
+redis:
+  host: "192.168.10.129"
+  port: 6379
+  pwd: "123456"
+log:
+  # panic,fatal,error,warn,warning,info,debug,trace
+  level: "info"
+  log_path: "runtime/app.log"
+wx_officials:
+  - appid: "wx1de82ff40caec834"
+    secret: "24bdd6877eec2c45706485cce8db8ec8"
+we_coms:
+  - corp_id: "ww57e24d81e781c9b0"
+    corp_secret: "Uvej1Rs2PxVQyjaUqGwzdOL54xKCIq-g0TfSgxDrK68"
+    app: "kf"
