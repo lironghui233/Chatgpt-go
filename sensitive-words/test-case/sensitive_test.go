@@ -1,0 +1,132 @@
+package test_case
+
+import (
+	"context"
+	"flag"
+	"net"
+	"sensitive-words/pkg/config"
+	"sensitive-words/pkg/filter"
+	"sensitive-words/proto"
+	"sensitive-words/sensitive-server/server"
+	"testing"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+)
+
+var configPath = flag.String("config", "../config.yaml", "单元测试配置文件")
+var dictPath = flag.String("dict", "dict.txt", "单元测试敏感词库文件")
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	config.InitConf(*configPath)
+	filter.InitFilter(*dictPath)
+	m.Run()
+}
+func TestValidate(t *testing.T) {
+	dataList := []struct {
+		req *proto.ValidateReq
+		res *proto.ValidateRes
+	}{
+		{
+			req: &proto.ValidateReq{
+				Text: "PKabcdefg TEL abcdefgTEL",
+			},
+			res: &proto.ValidateRes{
+				Ok:   false,
+				Word: "TEL",
+			},
+		},
+		{
+			req: &proto.ValidateReq{
+				Text: "请帮我写一篇1000字的论文，关于计算机方向的",
+			},
+			res: &proto.ValidateRes{
+				Ok:   false,
+				Word: "论文",
+			},
+		},
+		/*
+			{
+				req: &proto.ValidateReq{
+					Text: "请帮我写一hello你好算机方向的",
+				},
+				res: &proto.ValidateRes{
+					Ok:   false,
+					Word: "hello你好",
+				},
+			},
+			{
+				req: &proto.ValidateReq{
+					Text: "今天天气怎么样",
+				},
+				res: &proto.ValidateRes{
+					Ok:   true,
+					Word: "",
+				},
+			},
+		*/
+	}
+
+	//启动grpc server
+	lis, err := net.Listen("tcp", "localhost:50051")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//添加服务器启动选项
+	var opts = getServerOptions()
+	s := grpc.NewServer(opts...)
+	defer s.Stop()
+	filter := filter.GetFilter()
+	proto.RegisterSensitiveWordsServer(s, server.NewSensitiveWordsServer(filter))
+	go func() {
+		err = s.Serve(lis)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	}()
+	var clientOption = getOptions()
+	//客户端调用server
+	// conn, err := grpc.Dial("localhost:50051", clientOption...)
+	conn, err := grpc.Dial("192.168.10.129:50053", clientOption...)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer conn.Close()
+	client := proto.NewSensitiveWordsClient(conn)
+	ctx := context.Background()
+	ctx = appendBearerTokenToContext(ctx)
+	for _, item := range dataList {
+		res, err := client.Validate(ctx, item.req)
+		if err != nil {
+			t.Error(err)
+		}
+		if res.Ok != item.res.Ok || res.Word != item.res.Word {
+			t.Error("敏感词过滤结果与预期不一致")
+		}
+	}
+}
+
+func getServerOptions() []grpc.ServerOption {
+	var opts = make([]grpc.ServerOption, 0)
+	opts = append(opts, server.GetKeepaliveOpt()...)
+	opts = append(opts, grpc.StreamInterceptor(server.StreamInterceptor))
+	opts = append(opts, grpc.UnaryInterceptor(server.UnaryInterceptor))
+	return opts
+}
+
+func getOptions() []grpc.DialOption {
+	opts := make([]grpc.DialOption, 0)
+	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	return opts
+}
+func appendBearerTokenToContext(ctx context.Context) context.Context {
+	token := config.GetConf().Server.AccessToken
+	md := metadata.Pairs("authorization", "Bearer "+token)
+	return metadata.NewOutgoingContext(ctx, md)
+
+}

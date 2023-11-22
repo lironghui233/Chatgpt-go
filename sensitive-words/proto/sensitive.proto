@@ -1,0 +1,17 @@
+syntax = "proto3";
+option go_package = "sensitive-words/proto";
+package leoh_package;
+
+message ValidateReq {
+  string text = 1;
+}
+message ValidateRes {
+  bool ok = 1;
+  string word = 2;
+}
+
+// 服务定义
+service SensitiveWords{
+  rpc Validate(ValidateReq) returns (ValidateRes) {}
+}
+

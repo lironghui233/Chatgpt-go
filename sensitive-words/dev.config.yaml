@@ -1,0 +1,4 @@
+server:
+  host: "0.0.0.0"
+  port: 50053
+  access_token: "9jey84prEhw5u43780yjr3h7sksSdkFdDngKie8nth0yi29405nr"
