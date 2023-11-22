@@ -1,0 +1,332 @@
+version: "3.8"
+services:
+  tokenizer:
+    image: 43.159.145.230:5000/tokenizer:0.1.0
+    environment:
+      PORT: 3003
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: vip
+      resources:
+        limits:
+          cpus: '0.3'
+        reservations:
+          cpus: '0.01'
+      update_config:
+        parallelism: 2
+        order: start-first
+      rollback_config:
+        parallelism: 2
+        order: start-first
+    # command 会替换dockerfile中CMD
+    command: ["sh","-c","nuxt --port 3003 --module tokenizer.py --workers 2"]
+  chatgpt-data:
+    image: 43.159.145.230:5000/chatgpt-data:0.1.0
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: vip
+      resources:
+        limits:
+          cpus: '0.3'
+        reservations:
+          cpus: '0.01'
+      update_config:
+        parallelism: 2
+        order: start-first
+      rollback_config:
+        parallelism: 2
+        order: start-first
+    # entrypoint 会替换dockerfile中ENTRYPOINT
+    entrypoint: "/app/chatgpt-data"
+    # command 会替换dockerfile中CMD
+    command: ["--config=/app/config.yaml"]
+    healthcheck:
+      test: ["CMD","grpc_health_probe","-addr=:50052"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+      start_period: 1s
+    configs:
+      - source: chatgpt-data-conf
+        target: /app/config.yaml
+  keywords:
+    image: 43.159.145.230:5000/keywords:0.1.0
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: vip
+      resources:
+        limits:
+          cpus: '0.3'
+        reservations:
+          cpus: '0.01'
+      update_config:
+        parallelism: 2
+        order: start-first
+      rollback_config:
+        parallelism: 2
+        order: start-first
+    healthcheck:
+      test: ["CMD","grpc_health_probe","-addr=:50054"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+      start_period: 1s
+    configs:
+      - source: keywords-conf
+        target: /app/config.yaml
+      - source: keywords-dict
+        target: /app/dict.txt
+  sensitive-words:
+    image: 43.159.145.230:5000/sensitive-words:0.1.0
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: vip
+      resources:
+        limits:
+          cpus: '0.3'
+        reservations:
+          cpus: '0.01'
+      update_config:
+        parallelism: 2
+        order: start-first
+      rollback_config:
+        parallelism: 2
+        order: start-first
+    healthcheck:
+      test: ["CMD","grpc_health_probe","-addr=:50053"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+      start_period: 1s
+    configs:
+      - source: sensitive-words-conf
+        target: /app/config.yaml
+      - source: sensitive-words-dict
+        target: /app/dict.txt
+  chatgpt-service:
+    image: 43.159.145.230:5000/chatgpt-service:0.1.0
+    ports:
+      - "50051:50051"
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: vip
+      resources:
+        limits:
+          cpus: '0.3'
+        reservations:
+          cpus: '0.01'
+      update_config:
+        parallelism: 2
+        order: start-first
+      rollback_config:
+        parallelism: 2
+        order: start-first
+    healthcheck:
+      test: ["CMD","grpc_health_probe","-addr=:50051"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+      start_period: 1s
+    configs:
+      - source: chatgpt-service-conf
+        target: /app/config.yaml
+    depends_on:
+      - tokenizer
+      - keywords
+      - sensitive-words
+      - chatgpt-data
+  crontab:
+    image: 43.159.145.230:5000/crontab:0.1.0
+    deploy:
+      mode: replicated
+      replicas: 1
+      endpoint_mode: vip
+      resources:
+        limits:
+          cpus: '0.3'
+        reservations:
+          cpus: '0.01'
+      update_config:
+        parallelism: 1
+        order: start-first
+      rollback_config:
+        parallelism: 1
+        order: start-first
+    healthcheck:
+      test: ["CMD","grpc_health_probe","-addr=:50056"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+      start_period: 1s
+    configs:
+      - source: crontab-conf
+        target: /app/config.yaml
+  chatgpt-web:
+    image: 43.159.145.230:5000/chatgpt-web:0.1.0
+    ports:
+      - "7080:7080"
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: vip
+      resources:
+        limits:
+          cpus: '0.3'
+        reservations:
+          cpus: '0.01'
+      update_config:
+        parallelism: 2
+        order: start-first
+      rollback_config:
+        parallelism: 2
+        order: start-first
+    healthcheck:
+      test: ["CMD","curl","-f","http://localhost:7080/api/health"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+      start_period: 1s
+    configs:
+      - source: chatgpt-web-conf
+        target: /app/config.yaml
+    depends_on:
+      - chatgpt-service
+  chatgpt-qq:
+    image: 43.159.145.230:5000/chatgpt-qq:0.1.0
+    ports:
+      - "8080:8080"
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: vip
+      resources:
+        limits:
+          cpus: '0.3'
+        reservations:
+          cpus: '0.01'
+      update_config:
+        parallelism: 2
+        order: start-first
+      rollback_config:
+        parallelism: 2
+        order: start-first
+    healthcheck:
+      test: ["CMD","curl","-f","http://localhost:8080/health"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+      start_period: 1s
+    configs:
+      - source: chatgpt-qq-conf
+        target: /app/config.cfg
+    depends_on:
+      - chatgpt-service
+  chatgpt-official:
+    image: 43.159.145.230:5000/chatgpt-official:0.1.0
+    ports:
+      - "7081:7081"
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: vip
+      resources:
+        limits:
+          cpus: '0.3'
+        reservations:
+          cpus: '0.01'
+      update_config:
+        parallelism: 2
+        order: start-first
+      rollback_config:
+        parallelism: 2
+        order: start-first
+    healthcheck:
+      test: ["CMD","curl","-f","http://localhost:7081/api/health"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+      start_period: 1s
+    configs:
+      - source: chatgpt-official-conf
+        target: /app/config.yaml
+    depends_on:
+      - crontab
+      - chatgpt-service
+  chatgpt-wecom:
+    image: 43.159.145.230:5000/chatgpt-wecom:0.1.0
+    ports:
+      - "7082:7082"
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: vip
+      resources:
+        limits:
+          cpus: '0.3'
+        reservations:
+          cpus: '0.01'
+      update_config:
+        parallelism: 2
+        order: start-first
+      rollback_config:
+        parallelism: 2
+        order: start-first
+    healthcheck:
+      test: ["CMD","curl","-f","http://localhost:7082/api/health"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+      start_period: 1s
+    configs:
+      - source: chatgpt-wecom-conf
+        target: /app/config.yaml
+    depends_on:
+      - crontab
+      - chatgpt-service
+  chatgpt-frontend:
+    image: 43.159.145.230:5000/chatgpt-web-frontend:0.1.0
+    ports:
+      - "8081:80"
+    deploy:
+      mode: replicated
+      replicas: 1
+      endpoint_mode: vip
+      resources:
+        limits:
+          cpus: '0.3'
+        reservations:
+          cpus: '0.01'
+      update_config:
+        parallelism: 1
+        order: start-first
+      rollback_config:
+        parallelism: 1
+        order: start-first
+configs:
+  chatgpt-data-conf:
+    file: ./configs/chatgpt-data/config.yaml
+  keywords-conf:
+    file: ./configs/keywords/config.yaml
+  keywords-dict:
+    file: ./configs/keywords/dict.txt
+  sensitive-words-conf:
+    file: ./configs/sensitive-words/config.yaml
+  sensitive-words-dict:
+    file: ./configs/sensitive-words/dict.txt
+  chatgpt-service-conf:
+    file: ./configs/chatgpt-service/config.yaml
+  crontab-conf:
+    file: ./configs/crontab/config.yaml
+  chatgpt-web-conf:
+    file: ./configs/chatgpt-web-backend/config.yaml
+  chatgpt-qq-conf:
+    file: ./configs/chatgpt-qq/config.cfg
+  chatgpt-official-conf:
+    file: ./configs/chatgpt-official/config.yaml
+  chatgpt-wecom-conf:
+    file: ./configs/chatgpt-wecom/config.yaml
