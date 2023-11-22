@@ -1,0 +1,1 @@
+create database chatGPT default charset utf8mb4;

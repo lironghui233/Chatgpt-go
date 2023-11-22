@@ -1,0 +1,29 @@
+syntax = "proto3";
+// 指定生成的路径
+option go_package = "chatgpt-data/proto";
+// 指定包名
+package leoh_package;
+// 消息定义
+message Record {
+  int64 id = 1[json_name = "id"];
+  string account = 2[json_name = "account"];
+  string groupId = 3[json_name = "group_id"];
+  string userMsg = 4[json_name = "user_msg"];
+  int32 userMsgTokens =5[json_name = "user_msg_tokens"];
+  repeated string userMsgKeywords = 6[json_name = "user_msg_keywords"];
+  string aiMsg = 7[json_name = "ai_msg"];
+  int32 aiMsgTokens = 8[json_name = "ai_msg_tokens"];
+  int32 reqTokens = 9[json_name = "req_tokens"];
+  int64 createAt = 10[json_name = "create_at"];
+  string enterpriseId = 11 [json_name = "enterprise_id"];
+  int32 endpoint = 12 [json_name = "endpoint"];
+  string endpointAccount = 13 [json_name = "endpoint_account"];
+}
+message  RecordRes {
+  int64 id = 1[json_name = "id"];
+}
+// 服务定义
+service ChatGPTData {
+	// 服务方法定义
+  rpc AddRecord(Record)returns(RecordRes){}
+}
