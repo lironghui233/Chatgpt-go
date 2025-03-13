@@ -329,7 +329,7 @@
 
 ## 架构图
 
-![架构图（修订）](D:\project\go\chatgpt\image\README\架构图（修订）.png)
+![架构图（修订）](docs/architecture.png)
 
 ## 系统架构
 
